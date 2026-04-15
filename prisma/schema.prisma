@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ACCOUNT_MANAGER
+  STAFF
+}
+
+enum ActivityAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  BIRTHDAY_REMINDER
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         Role      @default(STAFF)
+  isActive     Boolean   @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  managedClients Client[]      @relation("ClientAccountManager")
+  createdClients Client[]      @relation("ClientCreatedBy")
+  updatedClients Client[]      @relation("ClientUpdatedBy")
+  createdContacts ContactPerson[] @relation("ContactCreatedBy")
+  updatedContacts ContactPerson[] @relation("ContactUpdatedBy")
+  activityLogs   ActivityLog[] @relation("ActivityActor")
+
+  @@index([role])
+  @@index([deletedAt])
+}
+
+model Client {
+  id               String    @id @default(uuid()) @db.Uuid
+  name             String
+  accountManagerId String    @db.Uuid
+  createdById      String    @db.Uuid
+  updatedById      String?   @db.Uuid
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  accountManager User @relation("ClientAccountManager", fields: [accountManagerId], references: [id], onDelete: Restrict)
+  createdBy      User @relation("ClientCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy      User? @relation("ClientUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  contacts       ContactPerson[]
+  activityLogs   ActivityLog[] @relation("ClientActivity")
+
+  @@index([accountManagerId])
+  @@index([createdById])
+  @@index([deletedAt])
+  @@index([name])
+}
+
+model ContactPerson {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  title       String?
+  email       String
+  phone       String?
+  birthday    DateTime?
+  clientId    String    @db.Uuid
+  createdById String    @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  client    Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy User   @relation("ContactCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy User?  @relation("ContactUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([clientId])
+  @@index([birthday])
+  @@index([deletedAt])
+  @@unique([clientId, email])
+}
+
+model ActivityLog {
+  id        String         @id @default(uuid()) @db.Uuid
+  action    ActivityAction
+  entity    String
+  entityId  String         @db.Uuid
+  actorId   String?        @db.Uuid
+  clientId  String?        @db.Uuid
+  metadata  Json?
+  createdAt DateTime       @default(now())
+
+  actor  User?   @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  client Client? @relation("ClientActivity", fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([actorId])
+  @@index([clientId])
+  @@index([createdAt])
+}
