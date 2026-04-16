@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { ClientsModule } from './clients/clients.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PrismaService } from './prisma/prisma.service';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { UsersModule } from './users/users.module';
 
@@ -24,6 +25,6 @@ import { UsersModule } from './users/users.module';
     SchedulerModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, PrismaService],
 })
 export class AppModule {}
