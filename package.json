@@ -14,7 +14,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "import:data": "ts-node prisma/import-data.ts",
+    "import:data": "ts-node --project tsconfig.scripts.json prisma/import-data.ts",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -28,7 +28,7 @@
   },
   "packageManager": "pnpm@8.15.6",
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node --project tsconfig.scripts.json prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
