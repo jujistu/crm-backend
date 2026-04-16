@@ -6,7 +6,10 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
+
+const PRISMA_CONNECTIVITY_CODES = new Set(['P1001', 'P1002']);
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -17,18 +20,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const status =
-      exception instanceof HttpException
+    const isDbUnavailable =
+      exception instanceof Prisma.PrismaClientKnownRequestError &&
+      PRISMA_CONNECTIVITY_CODES.has(exception.code);
+
+    const status = isDbUnavailable
+      ? HttpStatus.SERVICE_UNAVAILABLE
+      : exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : null;
 
-    const message =
-      typeof exceptionResponse === 'object' &&
-      exceptionResponse !== null &&
-      'message' in exceptionResponse
+    const message = isDbUnavailable
+      ? 'Service temporarily unavailable. Please try again later.'
+      : typeof exceptionResponse === 'object' &&
+          exceptionResponse !== null &&
+          'message' in exceptionResponse
         ? (exceptionResponse as { message: string | string[] }).message
         : exception instanceof Error
           ? exception.message
