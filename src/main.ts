@@ -9,9 +9,15 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') ?? true,
+    origin: ['http://localhost:3000', 'https://edgenetclientele.vercel.app'],
     credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Authorization',
   });
+  // app.enableCors({
+  //   origin: process.env.CORS_ORIGIN?.split(',') ?? true,
+  //   credentials: true,
+  // });
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({
