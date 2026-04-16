@@ -18,7 +18,7 @@ export class MailService {
   constructor(private readonly configService: ConfigService) {
     this.from = this.configService.get<string>(
       'MAIL_FROM',
-      'CRM Reminders <no-reply@example.com>',
+      'CRM Reminders <no-reply@edgenetgroup.com>',
     );
 
     this.transporter = nodemailer.createTransport({

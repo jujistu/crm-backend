@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, Role } from '../node_modules/.prisma/client/index.js';
 import * as bcrypt from 'bcrypt';
 import * as XLSX from 'xlsx';
 
