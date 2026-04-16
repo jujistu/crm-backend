@@ -1,6 +1,6 @@
-import { PrismaClient, Role } from '../node_modules/.prisma/client/index.js';
+import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 type Row = Record<string, unknown>;
 type ImportArgs = {
@@ -42,12 +42,12 @@ function normalizeKey(key: string) {
   return key.toLowerCase().replace(/[\s_-]/g, '');
 }
 
-function normalizeRow(row: Row): Row {
-  return Object.entries(row).reduce<Row>((accumulator, [key, value]) => {
-    accumulator[normalizeKey(key)] = value;
-    return accumulator;
-  }, {});
-}
+// function normalizeRow(row: Row): Row {
+//   return Object.entries(row).reduce<Row>((accumulator, [key, value]) => {
+//     accumulator[normalizeKey(key)] = value;
+//     return accumulator;
+//   }, {});
+// }
 
 function getString(row: Row, keys: string[]) {
   for (const key of keys.map(normalizeKey)) {
@@ -106,19 +106,50 @@ function parseDate(value?: string) {
   return date;
 }
 
-function readRows(filePath: string, sheetName?: string) {
-  const workbook = XLSX.readFile(filePath, { cellDates: true });
-  const selectedSheetName =
-    sheetName && workbook.SheetNames.includes(sheetName)
-      ? sheetName
-      : workbook.SheetNames[0];
+async function readRows(filePath: string, sheetName?: string): Promise<Row[]> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
 
-  const sheet = workbook.Sheets[selectedSheetName];
+  const sheet = sheetName
+    ? (workbook.getWorksheet(sheetName) ?? workbook.worksheets[0])
+    : workbook.worksheets[0];
+
   if (!sheet) {
     return [];
   }
 
-  return XLSX.utils.sheet_to_json<Row>(sheet, { defval: '' }).map(normalizeRow);
+  const headers: string[] = [];
+  const rows: Row[] = [];
+
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) {
+      row.eachCell((cell, colNumber) => {
+        const raw = cell.value;
+        headers[colNumber] = normalizeKey(
+          typeof raw === 'string' ||
+            typeof raw === 'number' ||
+            typeof raw === 'boolean'
+            ? String(raw)
+            : '',
+        );
+      });
+      return;
+    }
+
+    const record: Row = {};
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const header = headers[colNumber];
+      if (header) {
+        record[header] =
+          cell.type === ExcelJS.ValueType.Date
+            ? (cell.value as Date).toISOString().slice(0, 10)
+            : (cell.value ?? '');
+      }
+    });
+    rows.push(record);
+  });
+
+  return rows;
 }
 
 async function ensureActor() {
@@ -364,7 +395,7 @@ async function main() {
   const actorId = await ensureActor();
 
   if (args.file && args.type) {
-    const rows = readRows(args.file);
+    const rows = await readRows(args.file);
     if (args.type === 'users') {
       await importUsers(rows);
     } else if (args.type === 'clients') {
@@ -376,20 +407,20 @@ async function main() {
   }
 
   if (args.file) {
-    await importUsers(readRows(args.file, 'Users'));
-    await importClients(readRows(args.file, 'Clients'), actorId);
-    await importContacts(readRows(args.file, 'Contacts'), actorId);
+    await importUsers(await readRows(args.file, 'Users'));
+    await importClients(await readRows(args.file, 'Clients'), actorId);
+    await importContacts(await readRows(args.file, 'Contacts'), actorId);
     return;
   }
 
   if (args.users) {
-    await importUsers(readRows(args.users));
+    await importUsers(await readRows(args.users));
   }
   if (args.clients) {
-    await importClients(readRows(args.clients), actorId);
+    await importClients(await readRows(args.clients), actorId);
   }
   if (args.contacts) {
-    await importContacts(readRows(args.contacts), actorId);
+    await importContacts(await readRows(args.contacts), actorId);
   }
 
   if (!args.users && !args.clients && !args.contacts) {

@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '../node_modules/.prisma/client/index.js';
+import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
