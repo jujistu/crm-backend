@@ -76,18 +76,21 @@ export class BirthdayReminderService implements OnModuleInit, OnModuleDestroy {
           to: internalEmail,
           subject: `${contact.name}'s birthday is in ${daysUntil} day${daysUntil === 1 ? '' : 's'}`,
           text: `${contact.name} from ${contact.client.name} has a birthday coming up on ${this.formatBirthday(contact.birthday as Date)}.`,
-          html: `<p>${contact.name} from <strong>${contact.client.name}</strong> has a birthday coming up on ${this.formatBirthday(contact.birthday as Date)}.</p>`,
+          html: `
+                <p>Dear Team,</p>
+                <p>${contact.name} from <strong>${contact.client.name}</strong> has a birthday coming up on ${this.formatBirthday(contact.birthday as Date)}.</p>
+                <p>Best regards,<br><strong>Clientele Team</strong></p>`,
         });
       }
 
-      if (daysUntil === 0) {
-        await this.mailService.sendMail({
-          to: contact.email,
-          subject: `Happy birthday, ${contact.name}!`,
-          text: `Happy birthday ${contact.name}! Wishing you a wonderful day from our team.`,
-          html: `<p>Happy birthday ${contact.name}!</p><p>Wishing you a wonderful day from our team.</p>`,
-        });
-      }
+      // if (daysUntil === 0) {
+      //   await this.mailService.sendMail({
+      //     to: contact.email,
+      //     subject: `Happy birthday, ${contact.name}!`,
+      //     text: `Happy birthday ${contact.name}! Wishing you a wonderful day from our team.`,
+      //     html: `<p>Happy birthday ${contact.name}!</p><p>Wishing you a wonderful day from our team.</p>`,
+      //   });
+      // }
 
       if ([0, 1, 2].includes(daysUntil)) {
         await this.prisma.activityLog.create({
